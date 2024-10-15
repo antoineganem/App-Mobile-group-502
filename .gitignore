@@ -1,0 +1,59 @@
+# Python virtual environments
+venv/
+env/
+
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+
+# Environment variables file (DO NOT COMMIT this file if it contains secrets)
+.env
+
+# Flask specific files
+instance/
+*.db
+*.sqlite3
+
+# Pytest cache
+.pytest_cache/
+
+# Logs
+*.log
+
+# Database dumps
+*.sql
+*.sqlite
+
+# Config and IDE files
+*.DS_Store
+.vscode/
+.idea/
+
+# Pipenv files
+Pipfile.lock
+
+# MacOS system files
+.DS_Store
+
+# PyCharm and VSCode folders
+.idea/
+.vscode/
+
+# Other ignored files
+*.swp
+*.swo
+
+# Coverage reports
+htmlcov/
+.coverage
+.cache
+
+# Jupyter Notebook checkpoints
+.ipynb_checkpoints/
+
+# Generated files
+dist/
+build/
+*.egg-info/
