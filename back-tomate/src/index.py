@@ -11,15 +11,3 @@ incomes = [
 @app.route('/incomes')
 def get_incomes():
     return jsonify(incomes)
-
-@app.route('/users')
-def get_users():
-    db = get_db()
-    cursor = db.cursor()
-
-    # Execute a query to fetch all users from the 'users' table
-    cursor.execute("SELECT * FROM test")
-    users = cursor.fetchall()
-
-    # Return the results as JSON
-    return jsonify(users)

@@ -1,5 +1,5 @@
-import psycopg2
-from psycopg2.extras import RealDictCursor  # To return rows as dictionaries
+import psycopg2  # type: ignore # To return rows as dictionaries
+from psycopg2.extras import RealDictCursor  # type: ignore # To return rows as dictionaries
 from flask import current_app, g
 from config import Config
 
