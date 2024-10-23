@@ -1,5 +1,7 @@
 from flask import Flask, jsonify, request
 from flaskr.db import get_db, close_db
+from .activities.routes import activities_bp
+from .hours.routes import hours_bp
 
 app = Flask(__name__)
 
@@ -24,3 +26,9 @@ def get_users():
 
     # Return the results as JSON
     return jsonify(users)
+
+app.register_blueprint(activities_bp)
+app.register_blueprint(hours_bp)
+
+if __name__ == '__main__':
+    app.run(debug=True)
