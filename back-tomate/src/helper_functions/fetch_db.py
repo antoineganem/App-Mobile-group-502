@@ -1,4 +1,5 @@
 from flaskr.db import get_db, close_db
+from flask import jsonify
 
 def fetch_db(query, params=()):
     """
@@ -22,4 +23,12 @@ def fetch_db(query, params=()):
     
     # Fetch all the results and return them
     return cursor.fetchall()
+
+def execute_db(query, params=()):
+    try:
+      fetch_db(query, params)
+    except Exception as e:
+        # Ignore "no results to fetch" but catch other errors
+        if "no results to fetch" not in str(e).lower():
+            return jsonify({"error": str(e), "query": query}), 500
 
