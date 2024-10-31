@@ -1,7 +1,6 @@
 import React from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import auth from '@react-native-firebase/auth'; // Import Firebase authentication
 import { LogInScreen } from './screens/loginpage';
 import { HomeScreenFoodBankAdmin } from './screens/homepageadmin';
 import { HomeScreenFoodBankStudent } from './screens/homepagestudent';
