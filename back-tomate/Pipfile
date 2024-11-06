@@ -11,4 +11,4 @@ flask = "*"
 
 [requires]
 python_version = "3.10"
-python_full_version = "3.10.12"
+python_full_version = "3.10.11"
