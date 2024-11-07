@@ -1,5 +1,5 @@
 from flask import Flask, request, jsonify, Blueprint
-from ..helper_functions.fetch_db import fetch_db
+from ..helper_functions.fetch_db import fetch_db, execute_db, execute_batch
 
 # We create a Blueprint for the donations route
 donations_bp = Blueprint('donations_bp', __name__)
@@ -11,7 +11,7 @@ def get_donations_by_student_and_type():
     donation_type = request.args.get('type')
 
     if donation_type not in ["food", "clothes", "appliances"]:
-        return jsonify({"error": "Invalid donation type", "type": donation_type}), 400
+        return jsonify({"error": "Invalid donation type, you have to choose between food, clothes or appliances", "type": donation_type}), 400
 
     # Validate required parameters
     if not student_id or not donation_type:
@@ -20,28 +20,36 @@ def get_donations_by_student_and_type():
     # SQL query to find donations by student ID and type
     query = """
     SELECT d.id, d.created_at, d.hours, d.name, d.img, d.due_date,
-           json_agg(json_build_object(
-               'id', p.id,
-               'unity', p.unity,
-               'quantity', p.quantity,
-               'object', o.object
-           )) AS packages
+           COALESCE(packages.packages, '[]'::json) AS packages
     FROM donations d
-    JOIN hours_donations sd ON d.id = sd.id_donation AND sd.id_student != %s
-    LEFT JOIN packages p ON d.id = p.id_donation
-    LEFT JOIN objects o ON o.id = p.id_obj 
+    LEFT JOIN (
+        SELECT p.id_donation,
+               json_agg(
+                   json_build_object(
+                       'id', p.id,
+                       'unity', p.unity,
+                       'quantity', p.quantity,
+                       'object', o.object
+                   )
+               ) AS packages
+        FROM packages p
+        LEFT JOIN objects o ON o.id = p.id_obj
+        GROUP BY p.id_donation
+    ) AS packages ON d.id = packages.id_donation
     WHERE d.type = %s
-    GROUP BY d.id;
+      AND d.id NOT IN (
+          SELECT id_donation
+          FROM hours_donations
+          WHERE id_student = %s
+      );
     """
 
     # Execute the query with student_id and donation_type as parameters
-    results = fetch_db(query, (student_id, donation_type))
+    results = fetch_db(query, ( donation_type,student_id))
 
     # Return the results as JSON
     return jsonify(results), 200
 
-
-# Endpoint to create a new donation
 @donations_bp.route('/donations', methods=['POST'])
 def create_donation():
     # Get the JSON data from the request
@@ -51,77 +59,125 @@ def create_donation():
     if 'hours' not in data or 'name' not in data or 'img' not in data or 'due_date' not in data or 'type' not in data:
         return jsonify({"error": "Missing required fields"}), 400
 
-    # Extract the fields from the JSON data
+    # Extract fields
     hours = data['hours']
     name = data['name']
     img = data['img']
     due_date = data['due_date']
     donation_type = data['type']
+    packages = data.get('packages', [])
 
-    # SQL query to insert a new donation
+    # Insert the new donation and get the donation_id
     query = """
     INSERT INTO donations (hours, name, img, due_date, type) 
-    VALUES (%s, %s, %s, %s, %s) RETURNING *;
+    VALUES (%s, %s, %s, %s, %s) RETURNING id;
     """
+    donation_id = fetch_db(query, (hours, name, img, due_date, donation_type))[0]['id']
 
-    # Execute the query
-    results = fetch_db(query, (hours, name, img, due_date, donation_type))
+    # Collect unique package objects
+    unique_objects = {package['object'] for package in packages}
 
-    # Return the newly created donation as JSON
-    return jsonify(results), 201
+    # Batch insert new objects
+    object_query = "INSERT INTO objects (object) VALUES (%s) ON CONFLICT (object) DO NOTHING;"
+    execute_batch(object_query, [(obj,) for obj in unique_objects])
 
-# Endpoint to update an existing donation
+    # Map object names to IDs in one query
+    objects_query = "SELECT id, object FROM objects WHERE object IN %s"
+    object_mapping = {row['object']: row['id'] for row in fetch_db(objects_query, (tuple(unique_objects),))}
+
+    # Prepare package data for batch insertion
+    package_values = [
+        (donation_id, package['unity'], package['quantity'], object_mapping[package['object']])
+        for package in packages
+    ]
+
+    # Batch insert packages
+    package_query = """
+    INSERT INTO packages (id_donation, unity, quantity, id_obj) 
+    VALUES (%s, %s, %s, %s)
+    """
+    execute_batch(package_query, package_values)
+
+    return jsonify({"id": donation_id}), 201
+
+
 @donations_bp.route('/donations', methods=['PUT'])
 def update_donation():
-    # Get the JSON data from the request
     data = request.json
-
     id = request.args.get('id')
+
     if not id:
         return jsonify({"error": "Missing id query parameter"}), 400
 
-    # Check if the required fields are present
     if 'hours' not in data or 'name' not in data or 'img' not in data or 'due_date' not in data or 'type' not in data:
         return jsonify({"error": "Missing required fields"}), 400
 
-    # Extract the fields from the JSON data
+    # Extract fields
     hours = data['hours']
     name = data['name']
     img = data['img']
     due_date = data['due_date']
     donation_type = data['type']
+    packages = data.get('packages', [])
 
-    # SQL query to update a donation
-    query = """
+    # Update the donation
+    update_query = """
     UPDATE donations 
     SET hours = %s, name = %s, img = %s, due_date = %s, type = %s 
-    WHERE id = %s RETURNING *;
+    WHERE id = %s RETURNING id;
     """
+    execute_db(update_query, (hours, name, img, due_date, donation_type, id))
 
-    # Execute the query
-    results = fetch_db(query, (hours, name, img, due_date, donation_type, id))
+    # Delete existing packages in one query
+    delete_query = "DELETE FROM packages WHERE id_donation = %s;"
+    execute_db(delete_query, (id,))
 
-    # Return the updated donation as JSON
-    return jsonify(results), 200
+    # Insert new packages in batch
+    if packages:
+        # Insert unique objects for packages
+        unique_objects = {package['object'] for package in packages}
+        object_query = "INSERT INTO objects (object) VALUES (%s) ON CONFLICT (object) DO NOTHING;"
+        execute_batch(object_query, [(obj,) for obj in unique_objects])
+
+        # Get object IDs
+        objects_query = "SELECT id, object FROM objects WHERE object IN %s"
+        object_mapping = {row['object']: row['id'] for row in fetch_db(objects_query, (tuple(unique_objects),))}
+
+        # Prepare package data
+        package_values = [
+            (id, package['unity'], package['quantity'], object_mapping[package['object']])
+            for package in packages
+        ]
+        
+        # Batch insert packages
+        package_query = """
+        INSERT INTO packages (id_donation, unity, quantity, id_obj) 
+        VALUES (%s, %s, %s, %s)
+        """
+        execute_batch(package_query, package_values)
+
+    return jsonify({"id": id}), 200
+
 
 # Endpoint to partially update a donation
 @donations_bp.route('/donations', methods=['PATCH'])
 def partial_update_donation():
     # Get the JSON data from the request
     data = request.json
-
     id = request.args.get('id')
+
     if not id:
         return jsonify({"error": "Missing id query parameter"}), 400
 
-    # Extract the fields from the JSON data
+    # Extract fields to update if provided
     hours = data.get('hours')
     name = data.get('name')
     img = data.get('img')
     due_date = data.get('due_date')
     donation_type = data.get('type')
+    packages = data.get('packages', [])
 
-    # SQL query to partially update a donation with COALESCE to retain existing values if not provided
+    # Update only the provided fields using COALESCE
     query = """
     UPDATE donations 
     SET hours = COALESCE(%s, hours), 
@@ -129,14 +185,44 @@ def partial_update_donation():
         img = COALESCE(%s, img), 
         due_date = COALESCE(%s, due_date), 
         type = COALESCE(%s, type) 
-    WHERE id = %s RETURNING *;
+    WHERE id = %s RETURNING id;
     """
+    result = execute_db(query, (hours, name, img, due_date, donation_type, id))
+    if result:
+        return result  # Return error response if an error occurred
 
-    # Execute the query
-    results = fetch_db(query, (hours, name, img, due_date, donation_type, id))
+    # If packages are provided, update them
+    if packages:
+        # Delete existing packages for the donation in one batch
+        delete_query = "DELETE FROM packages WHERE id_donation = %s;"
+        result = execute_db(delete_query, (id,))
+        if result:
+            return result  # Return error response if an error occurred
 
-    # Return the updated donation as JSON
-    return jsonify(results), 200
+        # Prepare for batch insertion of new packages
+        # Insert unique objects for packages
+        unique_objects = {package['object'] for package in packages}
+        object_query = "INSERT INTO objects (object) VALUES (%s) ON CONFLICT (object) DO NOTHING;"
+        execute_batch(object_query, [(obj,) for obj in unique_objects])
+
+        # Get object IDs in a single query
+        objects_query = "SELECT id, object FROM objects WHERE object IN %s"
+        object_mapping = {row['object']: row['id'] for row in fetch_db(objects_query, (tuple(unique_objects),))}
+
+        # Prepare package data
+        package_values = [
+            (id, package['unity'], package['quantity'], object_mapping[package['object']])
+            for package in packages
+        ]
+        
+        # Batch insert packages
+        package_query = """
+        INSERT INTO packages (id_donation, unity, quantity, id_obj) 
+        VALUES (%s, %s, %s, %s)
+        """
+        execute_batch(package_query, package_values)
+
+    return jsonify({"id": id}), 200
 
 # Endpoint to delete a donation
 @donations_bp.route('/donations', methods=['DELETE'])
@@ -145,11 +231,12 @@ def delete_donation():
     if not id:
         return jsonify({"error": "Missing id query parameter"}), 400
 
-    # SQL query to delete a donation
-    query = "DELETE FROM donations WHERE id = %s RETURNING *;"
+    # Delete related entries and donation in a single transaction
+    delete_related_query = """
+    DELETE FROM hours_donations WHERE id_donation = %s;
+    DELETE FROM packages WHERE id_donation = %s;
+    DELETE FROM donations WHERE id = %s RETURNING *;
+    """
+    results = fetch_db(delete_related_query, (id, id, id))
 
-    # Execute the query
-    results = fetch_db(query, (id,))
-
-    # Return a 204 No Content response if deletion was successful
     return jsonify(results), 204

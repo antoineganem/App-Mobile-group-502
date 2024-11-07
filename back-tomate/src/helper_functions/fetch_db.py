@@ -1,5 +1,7 @@
 from flaskr.db import get_db, close_db
 from flask import jsonify
+import psycopg2
+from psycopg2.extras import execute_batch as psycopg2_execute_batch
 
 def fetch_db(query, params=()):
     """
@@ -32,3 +34,26 @@ def execute_db(query, params=()):
         if "no results to fetch" not in str(e).lower():
             return jsonify({"error": str(e), "query": query}), 500
 
+
+def execute_batch(query, values):
+    """
+    Execute a batch of parameterized queries against the database in a single transaction.
+    
+    Args:
+    - query: The SQL query to execute with placeholders for batch insertion.
+    - values: A list of tuples, where each tuple contains parameters for one execution of the query.
+    
+    Returns:
+    - A JSON response if an error occurs; otherwise, commits the transaction silently.
+    """
+    db = get_db()  # Reuse the existing database connection
+    try:
+        with db.cursor() as cursor:
+            # Use psycopg2's execute_batch to execute all queries in the list efficiently
+            psycopg2_execute_batch(cursor, query, values)
+        db.commit()
+    except Exception as e:
+        db.rollback()
+        print(f"Database error: {e}")
+        # Optionally return an error message in JSON format
+        return jsonify({"error": str(e), "query": query}), 500
