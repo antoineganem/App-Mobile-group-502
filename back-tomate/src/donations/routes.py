@@ -19,14 +19,14 @@ def get_donations_by_student_and_type():
 
     # SQL query to find donations by student ID and type
     query = """
-    SELECT d.id, d.created_at, d.hours, d.name, d.img, d.due_date,
+    SELECT d.id as donation_id, d.created_at, d.hours, d.name, d.img, d.due_date,
            COALESCE(packages.packages, '[]'::json) AS packages
     FROM donations d
     LEFT JOIN (
         SELECT p.id_donation,
                json_agg(
                    json_build_object(
-                       'id', p.id,
+                       'package_id', p.id,
                        'unity', p.unity,
                        'quantity', p.quantity,
                        'object', o.object

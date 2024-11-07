@@ -25,26 +25,26 @@ def create():
     if not activities_ids and not donations_ids:
         return jsonify({"error": "Missing required fields"}), 400
     
-    # Check if ids exist in the database
-    query_check_activities = "SELECT id, hours FROM activities WHERE id IN %s"
-
-    # Fetch hours for activities and donations in batches
-    activity_hours = {row['id']: row['hours'] for row in fetch_db(query_check_activities, (tuple(activities_ids),))}
 
     donation_hours= {}
 
     # Check if each id exists
     if activities_ids:
+        query_check_activities = "SELECT id, hours FROM activities WHERE id IN %s"
+
+        # Fetch hours for activities and donations in batches
+        activity_hours = {row['id']: row['hours'] for row in fetch_db(query_check_activities, (tuple(activities_ids),))}
+            
         for id_activity in activities_ids:
             if id_activity not in activity_hours:
                 return jsonify({"error": "Activity id does not exist", "id": id_activity}), 400
-            
+        # Check if ids exist in the database
     if donations_ids:
+        query_check_donations = "SELECT id, hours FROM donations WHERE id IN %s"
+        donation_hours = {row['id']: row['hours'] for row in fetch_db(query_check_donations, (tuple(donations_ids),))}
         for id_donation in donations_ids:
             if id_donation not in donation_hours:
                 return jsonify({"error": "Donation id does not exist", "id": id_donation}), 400
-        query_check_donations = "SELECT id, hours FROM donations WHERE id IN %s"
-        donation_hours = {row['id']: row['hours'] for row in fetch_db(query_check_donations, (tuple(donations_ids),))}
 
     # Validate that the total donation hours don’t exceed valid activity hours
     num_valid_activities_query = "SELECT SUM(hours) FROM hours_activities WHERE id_student = %s AND status = true;"
@@ -56,7 +56,7 @@ def create():
     num_new_donations_hours = sum(donation_hours[id] for id in donations_ids)
 
     if num_curr_donations_hours + num_new_donations_hours > num_valid_activities_hours:
-        return jsonify({"error": "Number of donations exceeds the number of valid activities"}), 400
+        return jsonify({"error": "Hours of donations exceeds the number of valid activities"}), 400
     
     # Prepare batch inserts for activities and donations
     # Prepare batch inserts for activities and donations
