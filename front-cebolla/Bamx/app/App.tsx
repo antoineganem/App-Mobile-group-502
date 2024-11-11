@@ -1,9 +1,18 @@
 // src/App.tsx
-import React from 'react';
-import LoginPage from './src/LoginPage';
+import React from "react";
+import LoginPage from "./src/screen-Login/LoginPage";
 
-const App: React.FC = () => {
-  return <LoginPage />;
-};
+import { NavigationContainer } from "@react-navigation/native";
+import { createNativeStackNavigator } from "@react-navigation/native-stack";
 
-export default App;
+const Stack = createNativeStackNavigator();
+
+export default function App() {
+  return (
+    <NavigationContainer>
+      <Stack.Navigator>
+        <Stack.Screen name="Home" component={LoginPage} />
+      </Stack.Navigator>
+    </NavigationContainer>
+  );
+}
