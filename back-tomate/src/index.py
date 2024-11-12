@@ -8,7 +8,6 @@ from .users.routes import user_bp
 from .cart.routes import cart_bp
 
 app = Flask(__name__)
-CORS(app) 
 incomes = [
     { 'description': 'salary', 'amount': 510120 }
 ]
@@ -19,23 +18,15 @@ def get_incomes():
     return jsonify(incomes)
 
 #Example of fetching to the test table in the SupaBase
-@app.route('/users')
-def get_users():
-    db = get_db()
-    cursor = db.cursor()
 
-    # Execute a query to fetch all users from the 'users' table
-    cursor.execute("SELECT * FROM test")
-    users = cursor.fetchall()
-
-    # Return the results as JSON
-    return jsonify(users)
 
 app.register_blueprint(activities_bp)
 app.register_blueprint(hours_bp)
 app.register_blueprint(donations_bp)
 app.register_blueprint(user_bp)
 app.register_blueprint(cart_bp)
+CORS(app) 
+
 
 if __name__ == '__main__':
     app.run(debug=True)
