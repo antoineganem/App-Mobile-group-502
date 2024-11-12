@@ -67,6 +67,12 @@ Enter the following in the bash
 pip install pipenv
 ```
 
+## Install all dependencies
+
+```bash
+pipenv install
+```
+
 ## Getting the .env variables
 
 Once you have all of the previous requisites ask Santi for the env variables.

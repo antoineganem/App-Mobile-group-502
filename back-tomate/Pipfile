@@ -6,6 +6,12 @@ name = "pypi"
 [packages]
 psycopg2-binary = "*"
 flask = "*"
+authlib = "*"
+requests = "*"
+python-dotenv = "*"
+flask-jwt-extended = "*"
+auth0-python = "*"
+python-jose = "*"
 flask-cors = "*"
 
 [dev-packages]
