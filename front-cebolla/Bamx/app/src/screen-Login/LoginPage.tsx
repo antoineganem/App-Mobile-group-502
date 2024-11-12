@@ -5,11 +5,13 @@ import {
   ScrollView,
   KeyboardAvoidingView,
   Platform,
+  Button,
 } from "react-native";
 import Logo from "./Logo";
 import InputField from "./InputField";
 import LoginButton from "./LoginButton";
 import { styles } from "./stylesLogin";
+import { useAuth0, Auth0Provider } from "react-native-auth0";
 
 const LoginPage: React.FC = () => {
   const handleLogin = async () => {
@@ -54,7 +56,7 @@ const LoginPage: React.FC = () => {
             type="password"
           />
         </View>
-
+        <LoginButtonAuth />
         <View style={styles.loginButtonContainer}>
           <LoginButton
             text="Iniciar Sesión"
@@ -92,4 +94,18 @@ const LoginPage: React.FC = () => {
   );
 };
 
+const LoginButtonAuth = () => {
+  const { authorize } = useAuth0();
+
+  const onPress = async () => {
+    console.log("Iniciando sesión...");
+    try {
+      await authorize();
+    } catch (e) {
+      console.log(e);
+    }
+  };
+
+  return <Button onPress={onPress} title="Log in" />;
+};
 export default LoginPage;
