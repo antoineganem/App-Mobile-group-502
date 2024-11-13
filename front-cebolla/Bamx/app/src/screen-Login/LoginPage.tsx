@@ -14,12 +14,14 @@ import { styles } from "./stylesLogin";
 import { useAuth0, Auth0Provider } from "react-native-auth0";
 import { AuthContext } from "../AuthContext";
 import bcrypt from "react-native-bcrypt";
+import { useRouter } from "expo-router";
 
-import { Link } from "expo-router";
+import { Link, router } from "expo-router";
 
 const LoginPage: React.FC = () => {
   const [email, setEmail] = React.useState("");
   const [password, setPassword] = React.useState("");
+  const router = useRouter();
 
   // const authContext = useContext(AuthContext);
   // if (!authContext) {
@@ -50,8 +52,13 @@ const LoginPage: React.FC = () => {
       console.log("Response from server:", data);
 
       // Handle login success or error based on the server response
-      if (data.message === "Usuario logeado correctamente") {
+      if (data.message === "Log ok") {
         console.log("Login successful");
+        if (data.userType === "admin")
+          router.push("src/screen-HomeAdmin/HomeAdminPage");
+        else {
+          router.push("src/screen-HomeStudents/HomeStudentsPage");
+        }
         // Navigate or update state here
       } else if (data.error) {
         console.error("Login error:", data.error);

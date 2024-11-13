@@ -1,16 +1,20 @@
 // HomeStudents.tsx
-import React, { useState } from 'react';
-import { View, Text, TouchableOpacity } from 'react-native';
-import Icon from 'react-native-vector-icons/Ionicons';
-import HeaderIcons from './HeaderIcons';
-import SearchBar from './SearchBar';
-import CategoryButtons from './CategoryButtons';
-import Sidebar from './Sidebar';
-import styles from './stylesHomeStudents';
+import React, { useState } from "react";
+import { View, Text, TouchableOpacity } from "react-native";
+import Icon from "react-native-vector-icons/Ionicons";
+import HeaderIcons from "./HeaderIcons";
+import SearchBar from "./SearchBar";
+import CategoryButtons from "./CategoryButtons";
+import Sidebar from "./Sidebar";
+import styles from "./stylesHomeStudents";
 
 const HomeStudentsPage: React.FC = () => {
   const [isSidebarVisible, setSidebarVisible] = useState(false);
+  const [donationType, setDonationType] = useState();
 
+  const fetchActivities = async () => {
+    // Fetch activities from the server
+  };
   const toggleSidebar = () => {
     setSidebarVisible(!isSidebarVisible);
   };

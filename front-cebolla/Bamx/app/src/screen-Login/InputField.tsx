@@ -1,17 +1,23 @@
-import React, { useState } from 'react';
-import { View, TextInput, Text, TouchableOpacity } from 'react-native';
-import Icon from 'react-native-vector-icons/FontAwesome';
-import { styles } from './stylesLogin';
+import React, { useState } from "react";
+import { View, TextInput, Text, TouchableOpacity } from "react-native";
+import Icon from "react-native-vector-icons/FontAwesome";
+import { styles } from "./stylesLogin";
 
 interface InputFieldProps {
   label: string;
   placeholder: string;
   type?: string;
+  onChangeText?: (text: string) => void;
 }
 
-const InputField: React.FC<InputFieldProps> = ({ label, placeholder, type = 'text' }) => {
+const InputField: React.FC<InputFieldProps> = ({
+  label,
+  placeholder,
+  type = "text",
+  onChangeText,
+}) => {
   const [isPasswordVisible, setIsPasswordVisible] = useState(false);
-  const isPasswordType = type === 'password';
+  const isPasswordType = type === "password";
 
   const togglePasswordVisibility = () => {
     setIsPasswordVisible(!isPasswordVisible);
@@ -22,7 +28,7 @@ const InputField: React.FC<InputFieldProps> = ({ label, placeholder, type = 'tex
       <Text style={styles.label}>{label}</Text>
       <View style={styles.inputContainer}>
         <Icon
-          name={isPasswordType ? 'lock' : 'user'}
+          name={isPasswordType ? "lock" : "user"}
           size={20}
           color="#777"
           style={styles.icon}
@@ -31,11 +37,12 @@ const InputField: React.FC<InputFieldProps> = ({ label, placeholder, type = 'tex
           style={styles.input}
           placeholder={placeholder}
           secureTextEntry={isPasswordType && !isPasswordVisible}
+          onChangeText={onChangeText}
         />
         {isPasswordType && (
           <TouchableOpacity onPress={togglePasswordVisibility}>
             <Icon
-              name={isPasswordVisible ? 'eye-slash' : 'eye'}
+              name={isPasswordVisible ? "eye-slash" : "eye"}
               size={20}
               color="#777"
               style={styles.icon}

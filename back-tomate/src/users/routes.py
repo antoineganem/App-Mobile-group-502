@@ -72,7 +72,7 @@ def log_in():
     if not bcrypt.check_password_hash(results[0]['password_hash'], password):
         return jsonify({"error": "Contraseña incorrecta"}), 400
     
-    return jsonify({"message": "Usuario logeado correctamente"}), 200
+    return jsonify({"message": "Log ok", "accountType":results[0]["type_account"]}), 200
 
 @user_bp.route('/users', methods=['GET']) 
 
