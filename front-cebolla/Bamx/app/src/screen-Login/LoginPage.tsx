@@ -36,7 +36,7 @@ const LoginPage: React.FC = () => {
 
     try {
       // Use a POST request and send email and password in the request body
-      const response = await fetch("http://localhost:5000/users/log-in", {
+      const response = await fetch("http://10.43.107.95:5000/users/log-in", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
