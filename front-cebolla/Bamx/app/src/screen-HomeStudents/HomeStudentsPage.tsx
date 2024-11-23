@@ -13,6 +13,7 @@ import HeaderIcons from "./HeaderIcons";
 import SearchBar from "./SearchBar";
 import CategoryButtons from "./CategoryButtons";
 import Sidebar from "./Sidebar";
+import CartPage from "../cartPage/CartPage"; // Import CartPage
 import styles from "./stylesHomeStudents";
 
 const fallbackImage =
@@ -24,6 +25,13 @@ const HomeStudentsPage: React.FC = () => {
   const [selectedActivity, setSelectedActivity] = useState(null);
   const [isModalVisible, setModalVisible] = useState(false);
 
+  const [cart, setCart] = useState({
+    activities_ids: [],
+    donations_ids: [],
+  });
+
+  const [showCartPage, setShowCartPage] = useState(false); // Track whether to show the cart page
+
   useEffect(() => {
     const fetchActivities = async () => {
       try {
@@ -31,7 +39,6 @@ const HomeStudentsPage: React.FC = () => {
           "http://10.43.107.95:5000/activities?student_id=12"
         );
         const data = await response.json();
-        // Add a fallback image to each activity item if it doesn't already have one
         const activitiesWithFallback = data.map((activity: any) => ({
           ...activity,
           img: activity.img || fallbackImage,
@@ -59,36 +66,71 @@ const HomeStudentsPage: React.FC = () => {
     setModalVisible(false);
   };
 
-  const renderActivityCard = ({ item }: { item: any }) => (
-    <View style={activityStyles.card}>
-      <Image
-        source={{ uri: item.img }}
-        style={activityStyles.image}
-        onError={({ nativeEvent }) => {
-          // Replace the image URL with the fallback image if it fails to load
-          item.img = fallbackImage;
-        }}
-      />
-      <View style={activityStyles.infoContainer}>
-        <Text style={activityStyles.title}>{item.name}</Text>
-        <Text style={activityStyles.description}>{item.description}</Text>
-        <Text style={activityStyles.hours}>Duración: {item.hours} horas</Text>
-        <TouchableOpacity
-          style={activityStyles.button}
-          onPress={() => openModal(item)}
-        >
-          <Text style={activityStyles.buttonText}>Registrarme</Text>
-        </TouchableOpacity>
+  const addToCart = (id: number, type: "activity" | "donation") => {
+    if (type === "activity" && cart.activities_ids.includes(id)) return;
+    if (type === "donation" && cart.donations_ids.includes(id)) return;
+
+    setCart((prevCart) => ({
+      activities_ids:
+        type === "activity"
+          ? [...prevCart.activities_ids, id]
+          : prevCart.activities_ids,
+      donations_ids:
+        type === "donation"
+          ? [...prevCart.donations_ids, id]
+          : prevCart.donations_ids,
+    }));
+  };
+
+  const renderActivityCard = ({ item }: { item: any }) => {
+    const isInCart = cart.activities_ids.includes(item.id);
+
+    return (
+      <View style={activityStyles.card}>
+        <Image
+          source={{ uri: item.img || fallbackImage }}
+          style={activityStyles.image}
+        />
+        <View style={activityStyles.infoContainer}>
+          <Text style={activityStyles.title}>{item.name}</Text>
+          <Text style={activityStyles.description}>{item.description}</Text>
+          <Text style={activityStyles.hours}>Duración: {item.hours} horas</Text>
+          <TouchableOpacity
+            style={[
+              activityStyles.button,
+              isInCart && activityStyles.buttonInCart,
+            ]}
+            onPress={() => addToCart(item.id, "activity")}
+            disabled={isInCart} // Disable if already in cart
+          >
+            <Text style={activityStyles.buttonText}>
+              {isInCart ? "En el carrito" : "Agregar al carrito"}
+            </Text>
+          </TouchableOpacity>
+        </View>
       </View>
-    </View>
-  );
+    );
+  };
+
+  if (showCartPage) {
+    return (
+      <CartPage
+        cart={cart}
+        setCart={setCart}
+        setShowCartPage={setShowCartPage}
+      />
+    );
+  }
 
   return (
     <View style={styles.container}>
-      <HeaderIcons onMenuPress={toggleSidebar} />
+      <HeaderIcons
+        onMenuPress={toggleSidebar}
+        onCartPress={() => setShowCartPage(true)} // Navigate to the cart page
+      />
       <SearchBar />
       <Text style={styles.sectionTitle}>Donaciones</Text>
-      <CategoryButtons />
+      <CategoryButtons cart={cart} setCart={setCart} />
       <Text style={styles.activitiesTitle}>Actividades</Text>
 
       <Sidebar isVisible={isSidebarVisible} onClose={toggleSidebar} />
@@ -144,6 +186,8 @@ const HomeStudentsPage: React.FC = () => {
 
 export default HomeStudentsPage;
 
+// Add styles for activities and modal here
+
 const activityStyles = StyleSheet.create({
   listContainer: {
     paddingHorizontal: 16,
@@ -186,6 +230,9 @@ const activityStyles = StyleSheet.create({
     paddingVertical: 6,
     paddingHorizontal: 12,
     alignSelf: "flex-start",
+  },
+  buttonInCart: {
+    backgroundColor: "#CCC",
   },
   buttonText: {
     color: "#fff",
