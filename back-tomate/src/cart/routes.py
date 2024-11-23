@@ -1,217 +1,82 @@
-import React from "react";
-import {
-  View,
-  Text,
-  FlatList,
-  TouchableOpacity,
-  Image,
-  StyleSheet,
-  Alert,
-} from "react-native";
-import { useRouter } from "expo-router"; // Assuming you're using Expo Router
+from flask import Flask, request, jsonify, Blueprint
+from ..helper_functions.fetch_db import fetch_db, execute_batch
 
-const fallbackImage = "https://via.placeholder.com/150";
+app = Flask(__name__)
 
-const CartPage: React.FC<{
-  cart: any;
-  setCart: React.Dispatch<React.SetStateAction<any>>; // Update cart type if defined
-  setShowCartPage: (show: boolean) => void;
-}> = ({ cart, setCart, setShowCartPage }) => {
-  const router = useRouter();
+# We create a Blueprint for the activities route
+cart_bp = Blueprint('cart_bp', __name__)
 
-  // Extract activities and donations details
-  const activities = Object.values(cart.activities_details || {});
-  const donations = Object.values(cart.donations_details || {});
+# Endpoint to search for activities the student is not involved in
+@cart_bp.route('/cart', methods=['POST'])
+def create():
+    # Get the JSON data from the request
+    student_id = request.args.get('student_id')
+    data = request.json
 
-  // Render Cart Item
-  const renderCartItem = ({ item }: { item: any }) => {
-    if (!item) return null;
+    # Check if the required fields are present
+    if student_id is None or not data:
+        return jsonify({"error": "Missing required fields"}), 400
 
-    return (
-      <View style={styles.cartItem}>
-        <Image
-          source={{ uri: item.imgUrl || fallbackImage }} // Use `imgUrl` for consistency
-          style={styles.image}
-        />
-        <View style={styles.infoContainer}>
-          <Text style={styles.title}>{item.name}</Text>
-          <Text style={styles.description}>{item.description}</Text>
-          <Text style={styles.hours}>Horas: {item.hours}</Text>
-          {/* Add Quantity for Donations */}
-          {item.quantity && (
-            <Text style={styles.quantity}>Cantidad: {item.quantity}</Text>
-          )}
-        </View>
-      </View>
-    );
-  };
+    # Extract the fields from the JSON data
+    activities_ids = data.get('activities_ids', [])
+    donations_ids = data.get('donations_ids', [])
 
-  const submitCart = async () => {
-    try {
-      // Validate cart before submission
-      if (activities.length === 0 && donations.length === 0) {
-        Alert.alert("Error", "El carrito está vacío.");
-        return;
-      }
+    # Check if ids are not empty 
+    if not activities_ids and not donations_ids:
+        return jsonify({"error": "Missing required fields"}), 400
+    
 
-      const response = await fetch(
-        `http://10.43.107.95:5000/cart?student_id=12`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            activities_ids: cart.activities_ids,
-            donations_ids: cart.donations_ids,
-          }),
-        }
-      );
+    donation_hours= {}
 
-      if (response.ok) {
-        const data = await response.json();
-        Alert.alert("Éxito", data.message); // Show success message
-        console.log("Cart submitted successfully:", data);
+    # Check if each id exists
+    if activities_ids:
+        query_check_activities = "SELECT id, hours FROM activities WHERE id IN %s"
 
-        // Clear the cart and navigate back to HomeStudentsPage
-        setCart({
-          activities_ids: [],
-          donations_ids: [],
-          activities_details: {},
-          donations_details: {},
-        });
-        router.push("src/screen-HomeStudents/HomeStudentsPage");
-      } else {
-        const error = await response.json();
-        Alert.alert("Error", error.error || "No se pudo enviar el carrito");
-      }
-    } catch (error) {
-      console.error("Error submitting cart:", error);
-      Alert.alert("Error", "Hubo un problema al enviar el carrito");
-    }
-  };
+        # Fetch hours for activities and donations in batches
+        activity_hours = {row['id']: row['hours'] for row in fetch_db(query_check_activities, (tuple(activities_ids),))}
+            
+        for id_activity in activities_ids:
+            if id_activity not in activity_hours:
+                return jsonify({"error": "Activity id does not exist", "id": id_activity}), 400
+        # Check if ids exist in the database
+    if donations_ids:
+        query_check_donations = "SELECT id, hours FROM donations WHERE id IN %s"
+        donation_hours = {row['id']: row['hours'] for row in fetch_db(query_check_donations, (tuple(donations_ids),))}
+        for id_donation in donations_ids:
+            if id_donation not in donation_hours:
+                return jsonify({"error": "Donation id does not exist", "id": id_donation}), 400
 
-  return (
-    <View style={styles.container}>
-      <TouchableOpacity onPress={() => setShowCartPage(false)}>
-        <Text style={styles.backButton}>{"< Volver"}</Text>
-      </TouchableOpacity>
-      <Text style={styles.title}>Mi Carrito</Text>
+    # Validate that the total donation hours don’t exceed valid activity hours
+    num_valid_activities_query = "SELECT SUM(hours) FROM hours_activities WHERE id_student = %s AND status = true;"
+    num_valid_activities_hours = fetch_db(num_valid_activities_query, (student_id,))[0]["sum"] or 0
+    
+    num_curr_donations_query = "SELECT SUM(hours) FROM hours_donations WHERE id_student = %s;"
+    num_curr_donations_hours = fetch_db(num_curr_donations_query, (student_id,))[0]["sum"] or 0
 
-      {/* Render Activities */}
-      {activities.length > 0 && (
-        <>
-          <Text style={styles.sectionHeader}>Actividades</Text>
-          <FlatList
-            data={activities}
-            keyExtractor={(item) => item.id.toString()}
-            renderItem={renderCartItem}
-          />
-        </>
-      )}
+    num_new_donations_hours = sum(donation_hours[id] for id in donations_ids)
 
-      {/* Render Donations */}
-      {donations.length > 0 && (
-        <>
-          <Text style={styles.sectionHeader}>Donaciones</Text>
-          <FlatList
-            data={donations}
-            keyExtractor={(item) => item.id.toString()}
-            renderItem={renderCartItem}
-          />
-        </>
-      )}
+    if num_curr_donations_hours + num_new_donations_hours > num_valid_activities_hours:
+        return jsonify({"error": "Las horas de donaciones exceden el número de actividades válidas"}), 400
+    
+    # Prepare batch inserts for activities and donations
+    # Prepare batch inserts for activities and donations
+    activities_insert_query = """
+    INSERT INTO hours_activities (id_student, id_activity, hours)
+    VALUES (%s, %s, %s)
+    ON CONFLICT (id_student, id_activity) DO NOTHING;
+    """
+    activities_values = [(student_id, id_activity, activity_hours[id_activity]) for id_activity in activities_ids]
 
-      {/* Show message if cart is empty */}
-      {activities.length === 0 && donations.length === 0 && (
-        <Text style={styles.emptyCartText}>
-          Tu carrito está vacío. Agrega algo para continuar.
-        </Text>
-      )}
+    donations_insert_query = """
+    INSERT INTO hours_donations (id_student, id_donation, hours)
+    VALUES (%s, %s, %s)
+    ON CONFLICT (id_student, id_donation) DO NOTHING;
+    """
+    donations_values = [(student_id, id_donation, donation_hours[id_donation]) for id_donation in donations_ids]
 
-      {/* Submit Cart Button */}
-      <TouchableOpacity
-        style={[styles.submitButton, { opacity: activities.length === 0 && donations.length === 0 ? 0.5 : 1 }]}
-        onPress={submitCart}
-        disabled={activities.length === 0 && donations.length === 0}
-      >
-        <Text style={styles.submitButtonText}>Enviar Carrito</Text>
-      </TouchableOpacity>
-    </View>
-  );
-};
+    # Execute batch inserts
+    execute_batch(activities_insert_query, activities_values)
+    execute_batch(donations_insert_query, donations_values)
 
-export default CartPage;
-
-const styles = StyleSheet.create({
-  container: {
-    padding: 16,
-    backgroundColor: "#fff",
-    flex: 1,
-  },
-  cartItem: {
-    flexDirection: "row",
-    backgroundColor: "#f9f9f9",
-    padding: 8,
-    borderRadius: 8,
-    marginBottom: 8,
-  },
-  image: {
-    width: 50,
-    height: 50,
-    marginRight: 8,
-  },
-  infoContainer: {
-    flex: 1,
-    justifyContent: "space-between",
-  },
-  title: {
-    fontSize: 18,
-    fontWeight: "bold",
-  },
-  description: {
-    fontSize: 14,
-    color: "#666",
-    marginBottom: 8,
-  },
-  hours: {
-    fontSize: 14,
-    color: "#666",
-  },
-  quantity: {
-    fontSize: 14,
-    color: "#666",
-    fontWeight: "bold",
-    marginTop: 4,
-  },
-  backButton: {
-    fontSize: 16,
-    color: "#FF5722",
-    marginBottom: 16,
-  },
-  sectionHeader: {
-    fontSize: 18,
-    fontWeight: "bold",
-    color: "#333",
-    marginTop: 16,
-    marginBottom: 8,
-  },
-  emptyCartText: {
-    fontSize: 16,
-    color: "#999",
-    textAlign: "center",
-    marginTop: 32,
-  },
-  submitButton: {
-    backgroundColor: "#FF5722",
-    borderRadius: 4,
-    paddingVertical: 12,
-    alignItems: "center",
-    marginTop: 16,
-  },
-  submitButtonText: {
-    color: "#fff",
-    fontSize: 16,
-    fontWeight: "bold",
-  },
-});
+    # Return a success message
+    return jsonify({"message": "Se ha registrado exitosamente"}), 201

@@ -8,14 +8,16 @@ import {
   StyleSheet,
   Alert,
 } from "react-native";
+import { useRouter } from "expo-router"; // Assuming you're using Expo Router
 
 const fallbackImage = "https://via.placeholder.com/150";
 
 const CartPage: React.FC<{
   cart: any;
+  setCart: React.Dispatch<React.SetStateAction<any>>; // Update cart type if defined
   setShowCartPage: (show: boolean) => void;
-}> = ({ cart, setShowCartPage }) => {
-  console.log("Cart:", cart);
+}> = ({ cart, setCart, setShowCartPage }) => {
+  const router = useRouter();
 
   // Extract activities and donations details
   const activities = Object.values(cart.activities_details || {});
@@ -46,6 +48,12 @@ const CartPage: React.FC<{
 
   const submitCart = async () => {
     try {
+      // Validate cart before submission
+      if (activities.length === 0 && donations.length === 0) {
+        Alert.alert("Error", "El carrito está vacío.");
+        return;
+      }
+
       const response = await fetch(
         `http://10.43.107.95:5000/cart?student_id=12`,
         {
@@ -53,7 +61,10 @@ const CartPage: React.FC<{
           headers: {
             "Content-Type": "application/json",
           },
-          body: JSON.stringify(cart),
+          body: JSON.stringify({
+            activities_ids: cart.activities_ids,
+            donations_ids: cart.donations_ids,
+          }),
         }
       );
 
@@ -61,7 +72,15 @@ const CartPage: React.FC<{
         const data = await response.json();
         Alert.alert("Éxito", data.message); // Show success message
         console.log("Cart submitted successfully:", data);
-        setShowCartPage(false); // Go back to the previous page
+
+        // Clear the cart and navigate back to HomeStudentsPage
+        setCart({
+          activities_ids: [],
+          donations_ids: [],
+          activities_details: {},
+          donations_details: {},
+        });
+        router.push("src/screen-HomeStudents/HomeStudentsPage");
       } else {
         const error = await response.json();
         Alert.alert("Error", error.error || "No se pudo enviar el carrito");
@@ -80,22 +99,48 @@ const CartPage: React.FC<{
       <Text style={styles.title}>Mi Carrito</Text>
 
       {/* Render Activities */}
-      <Text style={styles.sectionHeader}>Actividades</Text>
-      <FlatList
-        data={activities}
-        keyExtractor={(item) => item.id.toString()}
-        renderItem={renderCartItem}
-      />
+      {activities.length > 0 && (
+        <>
+          <Text style={styles.sectionHeader}>Actividades</Text>
+          <FlatList
+            data={activities}
+            keyExtractor={(item) => item.id.toString()}
+            renderItem={renderCartItem}
+          />
+        </>
+      )}
 
       {/* Render Donations */}
-      <Text style={styles.sectionHeader}>Donaciones</Text>
-      <FlatList
-        data={donations}
-        keyExtractor={(item) => item.id.toString()}
-        renderItem={renderCartItem}
-      />
+      {donations.length > 0 && (
+        <>
+          <Text style={styles.sectionHeader}>Donaciones</Text>
+          <FlatList
+            data={donations}
+            keyExtractor={(item) => item.id.toString()}
+            renderItem={renderCartItem}
+          />
+        </>
+      )}
 
-      <TouchableOpacity style={styles.submitButton} onPress={submitCart}>
+      {/* Show message if cart is empty */}
+      {activities.length === 0 && donations.length === 0 && (
+        <Text style={styles.emptyCartText}>
+          Tu carrito está vacío. Agrega algo para continuar.
+        </Text>
+      )}
+
+      {/* Submit Cart Button */}
+      <TouchableOpacity
+        style={[
+          styles.submitButton,
+          {
+            opacity:
+              activities.length === 0 && donations.length === 0 ? 0.5 : 1,
+          },
+        ]}
+        onPress={submitCart}
+        disabled={activities.length === 0 && donations.length === 0}
+      >
         <Text style={styles.submitButtonText}>Enviar Carrito</Text>
       </TouchableOpacity>
     </View>
@@ -156,6 +201,12 @@ const styles = StyleSheet.create({
     color: "#333",
     marginTop: 16,
     marginBottom: 8,
+  },
+  emptyCartText: {
+    fontSize: 16,
+    color: "#999",
+    textAlign: "center",
+    marginTop: 32,
   },
   submitButton: {
     backgroundColor: "#FF5722",
