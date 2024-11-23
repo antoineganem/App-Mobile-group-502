@@ -15,15 +15,34 @@ const CartPage: React.FC<{
   cart: any;
   setShowCartPage: (show: boolean) => void;
 }> = ({ cart, setShowCartPage }) => {
-  const renderCartItem = ({ item }: { item: any }) => (
-    <View style={styles.cartItem}>
-      <Image source={{ uri: item.img }} style={styles.image} />
-      <View style={styles.infoContainer}>
-        <Text style={styles.title}>{item.name}</Text>
-        <Text style={styles.hours}>Horas: {item.hours}</Text>
+  console.log("Cart:", cart);
+
+  // Extract activities and donations details
+  const activities = Object.values(cart.activities_details || {});
+  const donations = Object.values(cart.donations_details || {});
+
+  // Render Cart Item
+  const renderCartItem = ({ item }: { item: any }) => {
+    if (!item) return null;
+
+    return (
+      <View style={styles.cartItem}>
+        <Image
+          source={{ uri: item.imgUrl || fallbackImage }} // Use `imgUrl` for consistency
+          style={styles.image}
+        />
+        <View style={styles.infoContainer}>
+          <Text style={styles.title}>{item.name}</Text>
+          <Text style={styles.description}>{item.description}</Text>
+          <Text style={styles.hours}>Horas: {item.hours}</Text>
+          {/* Add Quantity for Donations */}
+          {item.quantity && (
+            <Text style={styles.quantity}>Cantidad: {item.quantity}</Text>
+          )}
+        </View>
       </View>
-    </View>
-  );
+    );
+  };
 
   const submitCart = async () => {
     try {
@@ -41,6 +60,7 @@ const CartPage: React.FC<{
       if (response.ok) {
         const data = await response.json();
         Alert.alert("Éxito", data.message); // Show success message
+        console.log("Cart submitted successfully:", data);
         setShowCartPage(false); // Go back to the previous page
       } else {
         const error = await response.json();
@@ -58,16 +78,23 @@ const CartPage: React.FC<{
         <Text style={styles.backButton}>{"< Volver"}</Text>
       </TouchableOpacity>
       <Text style={styles.title}>Mi Carrito</Text>
+
+      {/* Render Activities */}
+      <Text style={styles.sectionHeader}>Actividades</Text>
       <FlatList
-        data={cart.activities_ids.map((id) => ({
-          id,
-          name: `Actividad ${id}`,
-          img: fallbackImage,
-          hours: 2,
-        }))}
+        data={activities}
         keyExtractor={(item) => item.id.toString()}
         renderItem={renderCartItem}
       />
+
+      {/* Render Donations */}
+      <Text style={styles.sectionHeader}>Donaciones</Text>
+      <FlatList
+        data={donations}
+        keyExtractor={(item) => item.id.toString()}
+        renderItem={renderCartItem}
+      />
+
       <TouchableOpacity style={styles.submitButton} onPress={submitCart}>
         <Text style={styles.submitButtonText}>Enviar Carrito</Text>
       </TouchableOpacity>
@@ -102,16 +129,33 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 18,
     fontWeight: "bold",
-    marginBottom: 16,
+  },
+  description: {
+    fontSize: 14,
+    color: "#666",
+    marginBottom: 8,
   },
   hours: {
     fontSize: 14,
     color: "#666",
   },
+  quantity: {
+    fontSize: 14,
+    color: "#666",
+    fontWeight: "bold",
+    marginTop: 4,
+  },
   backButton: {
     fontSize: 16,
     color: "#FF5722",
     marginBottom: 16,
+  },
+  sectionHeader: {
+    fontSize: 18,
+    fontWeight: "bold",
+    color: "#333",
+    marginTop: 16,
+    marginBottom: 8,
   },
   submitButton: {
     backgroundColor: "#FF5722",

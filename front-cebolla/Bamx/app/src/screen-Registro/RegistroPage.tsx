@@ -17,6 +17,7 @@ import { styles as styles2 } from "../screen-Login/stylesLogin";
 import bcrypt from "react-native-bcrypt";
 import { AuthContext } from "../AuthContext";
 import { Link } from "expo-router";
+import { LOCALHOST } from "../constants";
 
 const isValidEmail = (email: string) => {
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -74,7 +75,7 @@ const RegistroPage: React.FC = () => {
 
     console.log("Body data:", bodyData);
 
-    fetch("http://127.0.0.1:5000/users/sign-up", {
+    fetch(`${LOCALHOST}/users/sign-up`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",

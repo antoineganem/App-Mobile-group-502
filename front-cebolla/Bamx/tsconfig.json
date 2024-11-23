@@ -10,7 +10,10 @@
     "**/*.ts",
     "**/*.tsx",
     ".expo/types/**/*.ts",
+    "./common.d.ts",
     "expo-env.d.ts",
-    "app/src/App.tsx"
+    "app/src/App.tsx",
+    "app/src/screen-HomeStudents/HomeStudentsPage.tsx",
+    "app/src/screen-HomeStudents/CategoryButtons.tsx"
   ]
 }

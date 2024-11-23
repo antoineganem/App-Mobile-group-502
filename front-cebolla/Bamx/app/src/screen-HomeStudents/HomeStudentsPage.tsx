@@ -19,18 +19,54 @@ import styles from "./stylesHomeStudents";
 const fallbackImage =
   "https://static8.depositphotos.com/1067257/874/v/450/depositphotos_8744393-stock-illustration-happy-guy-cheering.jpg"; // Fallback image URL
 
-const HomeStudentsPage: React.FC = () => {
-  const [isSidebarVisible, setSidebarVisible] = useState(false);
-  const [activities, setActivities] = useState([]);
-  const [selectedActivity, setSelectedActivity] = useState(null);
-  const [isModalVisible, setModalVisible] = useState(false);
+// Types for activity and cart
+type Activity = {
+  id: number;
+  name: string;
+  description: string;
+  img: string;
+  hours: number;
+  date?: string;
+};
 
-  const [cart, setCart] = useState({
+type Activities = {
+  id: number;
+  name: string;
+  description: string;
+  hours: number;
+  imgUrl: string;
+};
+type Donations = {
+  id: number;
+  name: string;
+  description: string;
+  hours: number;
+  imgUrl: string;
+};
+
+type Cart = {
+  activities_ids: number[];
+  donations_ids: number[];
+  activities_details: Record<number, Activities>; // Use object with keys as `id`
+  donations_details: Record<number, Donations>;
+};
+
+const HomeStudentsPage: React.FC = () => {
+  const [isSidebarVisible, setSidebarVisible] = useState<boolean>(false);
+  const [activities, setActivities] = useState<Activity[]>([]);
+  const [selectedActivity, setSelectedActivity] = useState<Activity | null>(
+    null
+  );
+  const [isModalVisible, setModalVisible] = useState<boolean>(false);
+
+  const [cart, setCart] = useState<Cart>({
     activities_ids: [],
     donations_ids: [],
+    activities_details: {}, // Initialize as empty objects
+    donations_details: {},
   });
 
-  const [showCartPage, setShowCartPage] = useState(false); // Track whether to show the cart page
+  const [showCartPage, setShowCartPage] = useState<boolean>(false); // Track whether to show the cart page
 
   useEffect(() => {
     const fetchActivities = async () => {
@@ -39,7 +75,7 @@ const HomeStudentsPage: React.FC = () => {
           "http://10.43.107.95:5000/activities?student_id=12"
         );
         const data = await response.json();
-        const activitiesWithFallback = data.map((activity: any) => ({
+        const activitiesWithFallback = data.map((activity: Activity) => ({
           ...activity,
           img: activity.img || fallbackImage,
         }));
@@ -56,7 +92,7 @@ const HomeStudentsPage: React.FC = () => {
     setSidebarVisible(!isSidebarVisible);
   };
 
-  const openModal = (activity: any) => {
+  const openModal = (activity: Activity) => {
     setSelectedActivity(activity);
     setModalVisible(true);
   };
@@ -66,23 +102,88 @@ const HomeStudentsPage: React.FC = () => {
     setModalVisible(false);
   };
 
-  const addToCart = (id: number, type: "activity" | "donation") => {
-    if (type === "activity" && cart.activities_ids.includes(id)) return;
-    if (type === "donation" && cart.donations_ids.includes(id)) return;
+  const addToCart = (
+    id: number,
+    type: "activity" | "donation",
+    details: Activities | Donations
+  ) => {
+    setCart((prevCart) => {
+      if (type === "activity") {
+        // Only add the activity if it's not already in the cart
+        if (prevCart.activities_ids.includes(id)) return prevCart;
 
-    setCart((prevCart) => ({
-      activities_ids:
-        type === "activity"
-          ? [...prevCart.activities_ids, id]
-          : prevCart.activities_ids,
-      donations_ids:
-        type === "donation"
-          ? [...prevCart.donations_ids, id]
-          : prevCart.donations_ids,
-    }));
+        return {
+          ...prevCart,
+          activities_ids: [...prevCart.activities_ids, id],
+          activities_details: {
+            ...prevCart.activities_details,
+            [id]: details as Activities,
+          },
+        };
+      }
+
+      if (type === "donation") {
+        // Handle donations with quantities
+        const updatedDonationsDetails = { ...prevCart.donations_details };
+        if (updatedDonationsDetails[id]) {
+          updatedDonationsDetails[id].quantity += 1; // Increment quantity
+        } else {
+          updatedDonationsDetails[id] = { ...details, quantity: 1 }; // Initialize quantity
+        }
+
+        return {
+          ...prevCart,
+          donations_ids: [...new Set([...prevCart.donations_ids, id])], // Ensure no duplicates
+          donations_details: updatedDonationsDetails,
+        };
+      }
+
+      return prevCart; // Fallback case
+    });
   };
 
-  const renderActivityCard = ({ item }: { item: any }) => {
+  const removeFromCart = (id: number, type: "activity" | "donation") => {
+    setCart((prevCart) => {
+      if (type === "activity") {
+        // Remove activity if it exists in the cart
+        const updatedActivitiesDetails = { ...prevCart.activities_details };
+        delete updatedActivitiesDetails[id];
+
+        return {
+          ...prevCart,
+          activities_ids: prevCart.activities_ids.filter(
+            (activityId) => activityId !== id
+          ),
+          activities_details: updatedActivitiesDetails,
+        };
+      }
+
+      if (type === "donation") {
+        // Handle donations with quantities
+        const updatedDonationsDetails = { ...prevCart.donations_details };
+
+        if (updatedDonationsDetails[id]) {
+          if (updatedDonationsDetails[id].quantity > 1) {
+            updatedDonationsDetails[id].quantity -= 1; // Decrement quantity
+          } else {
+            delete updatedDonationsDetails[id]; // Remove donation if quantity is 0
+          }
+        }
+
+        return {
+          ...prevCart,
+          donations_ids: prevCart.donations_ids.filter(
+            (donationId) => donationId !== id || updatedDonationsDetails[id]
+          ),
+          donations_details: updatedDonationsDetails,
+        };
+      }
+
+      return prevCart; // Fallback case
+    });
+  };
+
+  const renderActivityCard = ({ item }: { item: Activity }) => {
     const isInCart = cart.activities_ids.includes(item.id);
 
     return (
@@ -95,18 +196,33 @@ const HomeStudentsPage: React.FC = () => {
           <Text style={activityStyles.title}>{item.name}</Text>
           <Text style={activityStyles.description}>{item.description}</Text>
           <Text style={activityStyles.hours}>Duración: {item.hours} horas</Text>
-          <TouchableOpacity
-            style={[
-              activityStyles.button,
-              isInCart && activityStyles.buttonInCart,
-            ]}
-            onPress={() => addToCart(item.id, "activity")}
-            disabled={isInCart} // Disable if already in cart
-          >
-            <Text style={activityStyles.buttonText}>
-              {isInCart ? "En el carrito" : "Agregar al carrito"}
-            </Text>
-          </TouchableOpacity>
+          <View style={activityStyles.buttonRow}>
+            <TouchableOpacity
+              style={activityStyles.button}
+              onPress={() => openModal(item)} // Open modal on "Detalles" click
+            >
+              <Text style={activityStyles.buttonText}>Detalles</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[
+                activityStyles.cartButton,
+                isInCart && activityStyles.buttonInCart,
+              ]}
+              onPress={() => {
+                if (isInCart) {
+                  removeFromCart(item.id, "activity");
+                } else {
+                  addToCart(item.id, "activity", item);
+                }
+              }}
+            >
+              <Icon
+                name={isInCart ? "trash-outline" : "cart-outline"}
+                size={18}
+                color="#fff"
+              />
+            </TouchableOpacity>
+          </View>
         </View>
       </View>
     );
@@ -130,7 +246,12 @@ const HomeStudentsPage: React.FC = () => {
       />
       <SearchBar />
       <Text style={styles.sectionTitle}>Donaciones</Text>
-      <CategoryButtons cart={cart} setCart={setCart} />
+      <CategoryButtons
+        cart={cart}
+        setCart={setCart}
+        addToCart={addToCart}
+        removeFromCart={removeFromCart}
+      />
       <Text style={styles.activitiesTitle}>Actividades</Text>
 
       <Sidebar isVisible={isSidebarVisible} onClose={toggleSidebar} />
@@ -170,11 +291,6 @@ const HomeStudentsPage: React.FC = () => {
                 <Text style={modalStyles.date}>
                   Fecha: {selectedActivity.date}
                 </Text>
-                <TouchableOpacity style={modalStyles.registerButton}>
-                  <Text style={modalStyles.registerButtonText}>
-                    Registrarme
-                  </Text>
-                </TouchableOpacity>
               </>
             )}
           </View>
@@ -224,15 +340,27 @@ const activityStyles = StyleSheet.create({
     fontSize: 12,
     color: "#999",
   },
+  buttonRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginTop: 8,
+  },
   button: {
     backgroundColor: "#FF5722",
     borderRadius: 4,
     paddingVertical: 6,
     paddingHorizontal: 12,
-    alignSelf: "flex-start",
+    marginRight: 8,
+  },
+  cartButton: {
+    backgroundColor: "#FF5722",
+    borderRadius: 4,
+    padding: 8,
+    justifyContent: "center",
+    alignItems: "center",
   },
   buttonInCart: {
-    backgroundColor: "#CCC",
+    backgroundColor: "#FF2C2C",
   },
   buttonText: {
     color: "#fff",
@@ -275,16 +403,5 @@ const modalStyles = StyleSheet.create({
     fontSize: 12,
     color: "#999",
     marginBottom: 16,
-  },
-  registerButton: {
-    backgroundColor: "#FF5722",
-    borderRadius: 4,
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-  },
-  registerButtonText: {
-    color: "#fff",
-    fontSize: 14,
-    fontWeight: "bold",
   },
 });
