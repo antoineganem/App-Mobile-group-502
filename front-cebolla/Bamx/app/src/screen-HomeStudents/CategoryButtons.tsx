@@ -97,7 +97,12 @@ const CategoryButtons: React.FC<CategoryButtonsProps> = ({
                 })
               }
             >
-              <Icon name="add-outline" size={20} color="white" />
+              <Icon
+                name="add-outline"
+                size={20}
+                color="white"
+                disabled={item.packages?.length > 0 ? true : false}
+              />
             </TouchableOpacity>
           </View>
         </View>

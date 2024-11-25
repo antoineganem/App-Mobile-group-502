@@ -7,6 +7,7 @@ import {
   Image,
   StyleSheet,
   Modal,
+  ScrollView,
 } from "react-native";
 import Icon from "react-native-vector-icons/Ionicons";
 import HeaderIcons from "./HeaderIcons";
@@ -245,23 +246,26 @@ const HomeStudentsPage: React.FC = () => {
         onCartPress={() => setShowCartPage(true)} // Navigate to the cart page
       />
       <SearchBar />
-      <Text style={styles.sectionTitle}>Donaciones</Text>
-      <CategoryButtons
-        cart={cart}
-        setCart={setCart}
-        addToCart={addToCart}
-        removeFromCart={removeFromCart}
-      />
-      <Text style={styles.activitiesTitle}>Actividades</Text>
+      <ScrollView contentContainerStyle={{ flexGrow: 1 }}>
+        <Text style={styles.sectionTitle}>Donaciones</Text>
+        <CategoryButtons
+          cart={cart}
+          setCart={setCart}
+          addToCart={addToCart}
+          removeFromCart={removeFromCart}
+        />
+        <Text style={styles.activitiesTitle}>Actividades</Text>
+
+        <FlatList
+          data={activities}
+          keyExtractor={(item) => item.id.toString()}
+          renderItem={renderActivityCard}
+          contentContainerStyle={activityStyles.listContainer}
+          scrollEnabled={false} // Disable FlatList scrolling to allow ScrollView to handle scrolling
+        />
+      </ScrollView>
 
       <Sidebar isVisible={isSidebarVisible} onClose={toggleSidebar} />
-
-      <FlatList
-        data={activities}
-        keyExtractor={(item) => item.id.toString()}
-        renderItem={renderActivityCard}
-        contentContainerStyle={activityStyles.listContainer}
-      />
 
       <TouchableOpacity style={styles.homeIconContainer}>
         <Icon name="home-outline" size={32} color="white" />
@@ -301,6 +305,7 @@ const HomeStudentsPage: React.FC = () => {
 };
 
 export default HomeStudentsPage;
+
 
 // Add styles for activities and modal here
 
