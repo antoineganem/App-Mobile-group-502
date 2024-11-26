@@ -16,7 +16,7 @@ import styles from "./stylesRegistro";
 import { styles as styles2 } from "../screen-Login/stylesLogin";
 import bcrypt from "react-native-bcrypt";
 import { AuthContext } from "../AuthContext";
-import { Link } from "expo-router";
+import { Link, router } from "expo-router";
 import { LOCALHOST } from "../constants";
 
 const isValidEmail = (email: string) => {
@@ -84,11 +84,8 @@ const RegistroPage: React.FC = () => {
     })
       .then((response) => response.json())
       .then((data) => {
-        if (data.success) {
-          alert("Cuenta creada exitosamente");
-        } else {
-          alert("Error al crear la cuenta: " + data.error);
-        }
+        alert("Cuenta creada exitosamente");
+        router.push("src/screen-Login/LoginPage");
       })
       .catch((error) => {
         console.error("Error:", error);

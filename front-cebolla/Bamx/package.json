@@ -20,6 +20,7 @@
     "@expo/vector-icons": "^14.0.2",
     "@mui/icons-material": "^6.1.6",
     "@react-native-community/checkbox": "^0.5.17",
+    "@react-native-community/datetimepicker": "^8.2.0",
     "@react-native-picker/picker": "^2.9.0",
     "@react-navigation/native": "^6.0.2",
     "a": "^3.0.1",

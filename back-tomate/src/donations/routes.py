@@ -10,14 +10,19 @@ def get_donations_by_student_and_type():
     student_id = request.args.get('student_id')
     donation_type = request.args.get('type')
 
-    if donation_type not in ["food", "clothes", "appliances"]:
-        return jsonify({"error": "Invalid donation type, you have to choose between food, clothes or appliances", "type": donation_type}), 400
-
     # Validate required parameters
     if not student_id or not donation_type:
         return jsonify({"error": "Missing required parameters: student_id and type"}), 400
 
-    # SQL query to find donations by student ID and type
+    # Validate donation type
+    valid_types = ["food", "clothes", "appliances", "all"]
+    if donation_type not in valid_types:
+        return jsonify({
+            "error": "Invalid donation type. Choose between food, clothes, appliances, or all",
+            "type": donation_type
+        }), 400
+
+    # SQL query to find donations
     query = """
     SELECT d.id as donation_id, d.created_at, d.hours, d.name, d.img, d.due_date,
            COALESCE(packages.packages, '[]'::json) AS packages
@@ -36,16 +41,23 @@ def get_donations_by_student_and_type():
         LEFT JOIN objects o ON o.id = p.id_obj
         GROUP BY p.id_donation
     ) AS packages ON d.id = packages.id_donation
-    WHERE d.type = %s
-      AND d.id NOT IN (
+    WHERE d.id NOT IN (
           SELECT id_donation
           FROM hours_donations
           WHERE id_student = %s
-      );
+    )
     """
+    
+    # Add type filter if the type is not "all"
+    if donation_type != "all":
+        query += " AND d.type = %s"
 
-    # Execute the query with student_id and donation_type as parameters
-    results = fetch_db(query, ( donation_type,student_id))
+    # Execute the query with parameters
+    params = (student_id,)
+    if donation_type != "all":
+        params += (donation_type,)
+
+    results = fetch_db(query, params)
 
     # Return the results as JSON
     return jsonify(results), 200

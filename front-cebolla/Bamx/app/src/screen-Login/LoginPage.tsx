@@ -55,8 +55,9 @@ const LoginPage: React.FC = () => {
       // Handle login success or error based on the server response
       if (data.message === "Log ok") {
         console.log("Login successful");
-        if (data.userType === "admin")
-          router.push("src/screen-HomeAdmin/HomeAdminPage");
+        console.log("User type:", data.accountType);
+        if (data.accountType === "admin")
+          router.push("src/screen-admin/HomeAdminPage");
         else {
           router.push("src/screen-HomeStudents/HomeStudentsPage");
         }
