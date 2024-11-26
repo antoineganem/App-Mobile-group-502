@@ -6,6 +6,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   Button,
+  Alert,
 } from "react-native";
 import Logo from "./Logo";
 import InputField from "./InputField";
@@ -13,7 +14,6 @@ import LoginButton from "./LoginButton";
 import { styles } from "./stylesLogin";
 import { useAuth0, Auth0Provider } from "react-native-auth0";
 import { AuthContext } from "../AuthContext";
-import bcrypt from "react-native-bcrypt";
 import { useRouter } from "expo-router";
 
 import { Link, router } from "expo-router";
@@ -58,7 +58,9 @@ const LoginPage: React.FC = () => {
         console.log("User type:", data.accountType);
         if (data.accountType === "admin")
           router.push("src/screen-admin/HomeAdminPage");
-        else {
+        else if (data.accountType === "user") {
+          Alert.alert("Usuario no autorizado");
+        } else {
           router.push("src/screen-HomeStudents/HomeStudentsPage");
         }
         // Navigate or update state here

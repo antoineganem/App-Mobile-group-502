@@ -145,32 +145,34 @@ const AdminEventPage: React.FC<EventPageProps> = () => {
       type === "activity" ? "activities" : "donations"
     }?id=${id}`;
 
-    Alert.alert(
-      "Confirmar eliminación",
-      `¿Estás seguro que deseas eliminar este ${
-        type === "activity" ? "actividad" : "donación"
-      }?`,
-      [
-        {
-          text: "Cancelar",
-          style: "cancel",
-        },
-        {
-          text: "Eliminar",
-          style: "destructive",
-          onPress: async () => {
-            try {
-              await fetch(url, {
-                method: "DELETE",
-              });
-              fetchEvents(); // Refresh the list
-            } catch (error) {
-              console.error("Error deleting item:", error);
-            }
+    const confirmDelete = new Promise((resolve) => {
+      Alert.alert(
+        "Confirmar eliminación",
+        `¿Estás seguro que deseas eliminar este ${
+          type === "activity" ? "actividad" : "donación"
+        }?`,
+        [
+          { text: "Cancelar", style: "cancel", onPress: () => resolve(false) },
+          {
+            text: "Eliminar",
+            style: "destructive",
+            onPress: () => resolve(true),
           },
-        },
-      ]
-    );
+        ]
+      );
+    });
+
+    const shouldDelete = await confirmDelete;
+    if (!shouldDelete) return;
+
+    try {
+      await fetch(url, {
+        method: "DELETE",
+      });
+      fetchEvents(); // Refresh the list after deletion
+    } catch (error) {
+      console.error("Error deleting item:", error);
+    }
   };
 
   return (
@@ -209,7 +211,7 @@ const AdminEventPage: React.FC<EventPageProps> = () => {
                   <Text style={styles.cardHours}>Horas: {item.hours}</Text>
                 </TouchableOpacity>
                 <View
-                  style={{ display: "flex", flexDirection: "row", gap: "20px" }}
+                  style={{ display: "flex", flexDirection: "row", gap: 20 }}
                 >
                   <TouchableOpacity
                     onPress={() => handleEditItem("activity", item)}
@@ -243,7 +245,7 @@ const AdminEventPage: React.FC<EventPageProps> = () => {
                   <Text style={styles.cardHours}>Horas: {item.hours}</Text>
                 </TouchableOpacity>
                 <View
-                  style={{ display: "flex", flexDirection: "row", gap: "20px" }}
+                  style={{ display: "flex", flexDirection: "row", gap: 20 }}
                 >
                   <TouchableOpacity
                     onPress={() => handleEditItem("donation", item)}

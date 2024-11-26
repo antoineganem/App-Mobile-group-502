@@ -260,6 +260,7 @@ const HomeStudentsPage: React.FC = () => {
       <HeaderIcons
         onMenuPress={toggleSidebar}
         onCartPress={() => setShowCartPage(true)} // Navigate to the cart page
+        cart={true}
       />
       <SearchBar />
       <ScrollView contentContainerStyle={{ flexGrow: 1 }}>

@@ -24,18 +24,10 @@ const Sidebar: React.FC<SidebarProps> = ({ isVisible, onClose }) => {
           <Text style={styles.sidebarTitle}>Admin Dashboard</Text>
 
           {/* Opciones del Sidebar */}
+
           <TouchableOpacity
             style={styles.menuItem}
-            onPress={() =>
-              router.push("src/screen-HomeStudents/HomeStudentsPage")
-            }
-          >
-            <Icon name="heart-outline" size={24} color="black" />
-            <Text style={styles.menuText}>Donativos/Actividades</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.menuItem}
-            onPress={() => router.push("src/screen-HomeStudents/ProgressPage")}
+            onPress={() => router.push("src/screen-admin/HomeAdminPage")}
           >
             <Icon name="stats-chart-outline" size={24} color="black" />
             <Text style={styles.menuText}>Progreso alumnos</Text>

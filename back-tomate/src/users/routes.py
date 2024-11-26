@@ -80,3 +80,29 @@ def log_in():
 @user_bp .route('/test', methods=['GET'])
 def test():
     return jsonify({"message": "Hello, World!"}), 200
+
+@user_bp.route('/users/authorize', methods=['POST'])
+def authorize_user():
+    data = request.json
+    email = data['email']
+    
+    print(email)
+    if not email :
+        return jsonify({"error": "Missing required fields"}), 400
+
+    results = fetch_db("SELECT * FROM users WHERE email = %s AND type_account = 'user'", (email,))
+    
+    if len(results) == 0:
+        return jsonify({"error": "Usuario no registrado"}), 400
+
+    query = "INSERT INTO authorized_admins (email) VALUES (%s)"
+    query_set_admin = "UPDATE users SET type_account = 'admin' WHERE email = %s AND type_account = 'user'"
+
+    
+    res=execute_db(query, (email,))
+    res2=execute_db(query_set_admin, (email,))
+
+
+    print(res2)
+
+    return jsonify({"message": "Log ok"}), 200
