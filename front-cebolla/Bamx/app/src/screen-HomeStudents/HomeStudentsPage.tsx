@@ -17,6 +17,20 @@ import Sidebar from "./Sidebar";
 import CartPage from "../cartPage/CartPage"; // Import CartPage
 import styles from "./stylesHomeStudents";
 
+export const formatDate = (dateString: string | undefined) => {
+  if (!dateString) return "Sin fecha";
+
+  const date = new Date(dateString);
+  return new Intl.DateTimeFormat("es-ES", {
+    weekday: "long",
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+    hour: "numeric",
+    minute: "numeric",
+  }).format(date);
+};
+
 const fallbackImage =
   "https://static8.depositphotos.com/1067257/874/v/450/depositphotos_8744393-stock-illustration-happy-guy-cheering.jpg"; // Fallback image URL
 
@@ -52,6 +66,8 @@ type Cart = {
   donations_details: Record<number, Donations>;
 };
 
+import { LOCALHOST } from "../constants";
+
 const HomeStudentsPage: React.FC = () => {
   const [isSidebarVisible, setSidebarVisible] = useState<boolean>(false);
   const [activities, setActivities] = useState<Activity[]>([]);
@@ -72,9 +88,9 @@ const HomeStudentsPage: React.FC = () => {
   useEffect(() => {
     const fetchActivities = async () => {
       try {
-        const response = await fetch(
-          "http://10.43.107.95:5000/activities?student_id=12"
-        );
+        const url = `${LOCALHOST}/activities?student_id=12`;
+        console.log("Fetching activities from:", url);
+        const response = await fetch(`${LOCALHOST}/activities?student_id=12`);
         const data = await response.json();
         const activitiesWithFallback = data.map((activity: Activity) => ({
           ...activity,
@@ -244,6 +260,7 @@ const HomeStudentsPage: React.FC = () => {
       <HeaderIcons
         onMenuPress={toggleSidebar}
         onCartPress={() => setShowCartPage(true)} // Navigate to the cart page
+        cart={true}
       />
       <SearchBar />
       <ScrollView contentContainerStyle={{ flexGrow: 1 }}>
@@ -288,12 +305,16 @@ const HomeStudentsPage: React.FC = () => {
             </TouchableOpacity>
             {selectedActivity && (
               <>
+                <Image
+                  source={{ uri: selectedActivity.img || fallbackImage }}
+                  style={modalStyles.image}
+                />
                 <Text style={modalStyles.title}>{selectedActivity.name}</Text>
                 <Text style={modalStyles.description}>
                   {selectedActivity.description}
                 </Text>
                 <Text style={modalStyles.date}>
-                  Fecha: {selectedActivity.date}
+                  Fecha: {formatDate(selectedActivity.date)}
                 </Text>
               </>
             )}
@@ -305,7 +326,6 @@ const HomeStudentsPage: React.FC = () => {
 };
 
 export default HomeStudentsPage;
-
 
 // Add styles for activities and modal here
 

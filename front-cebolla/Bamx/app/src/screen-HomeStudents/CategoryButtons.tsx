@@ -18,6 +18,9 @@ interface CategoryButtonsProps {
   addToCart: (id: number, type: string, item: any) => void; // Correct typing for addToCart
   removeFromCart: (id: number, type: string) => void; // Correct typing for removeFromCart
 }
+import { formatDate } from "./HomeStudentsPage";
+
+import { LOCALHOST } from "../constants";
 
 const CategoryButtons: React.FC<CategoryButtonsProps> = ({
   cart,
@@ -39,7 +42,7 @@ const CategoryButtons: React.FC<CategoryButtonsProps> = ({
   const fetchDonations = async (category: string) => {
     try {
       const response = await fetch(
-        `http://10.43.107.95:5000/donations?student_id=12&type=${category}`
+        `${LOCALHOST}/donations?student_id=12&type=${category}`
       );
       const data = await response.json();
       setItems(data);
@@ -72,7 +75,9 @@ const CategoryButtons: React.FC<CategoryButtonsProps> = ({
         />
         <View style={donationStyles.infoContainer}>
           <Text style={donationStyles.title}>{item.name}</Text>
-          <Text style={donationStyles.date}>Fecha límite: {item.due_date}</Text>
+          <Text style={donationStyles.date}>
+            Fecha límite: {formatDate(item.due_date)}
+          </Text>
           <Text style={donationStyles.hours}>Horas: {item.hours}</Text>
           <Text style={donationStyles.packages}>
             Paquetes: {item.packages?.length || 0}
@@ -135,6 +140,7 @@ const CategoryButtons: React.FC<CategoryButtonsProps> = ({
           keyExtractor={(item) => item.donation_id.toString()}
           renderItem={renderDonationCard}
           contentContainerStyle={donationStyles.listContainer}
+          nestedScrollEnabled={true} // Allow nested scrolling
         />
       )}
     </View>

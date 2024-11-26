@@ -9,7 +9,7 @@ import {
   Alert,
 } from "react-native";
 import { useRouter } from "expo-router"; // Assuming you're using Expo Router
-
+import { LOCALHOST } from "../constants";
 const fallbackImage = "https://via.placeholder.com/150";
 
 const CartPage: React.FC<{
@@ -54,19 +54,16 @@ const CartPage: React.FC<{
         return;
       }
 
-      const response = await fetch(
-        `http://10.43.107.95:5000/cart?student_id=12`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            activities_ids: cart.activities_ids,
-            donations_ids: cart.donations_ids,
-          }),
-        }
-      );
+      const response = await fetch(`${LOCALHOST}/cart?student_id=12`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          activities_ids: cart.activities_ids,
+          donations_ids: cart.donations_ids,
+        }),
+      });
 
       if (response.ok) {
         const data = await response.json();

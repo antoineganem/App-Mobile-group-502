@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, Modal } from 'react-native';
-import Icon from 'react-native-vector-icons/Ionicons';
-import styles from './stylesHomeStudents'; 
+import React, { useState } from "react";
+import { View, Text, TouchableOpacity, Modal } from "react-native";
+import Icon from "react-native-vector-icons/Ionicons";
+import styles from "./stylesHomeStudents";
+import { router } from "expo-router";
 
 interface SidebarProps {
   isVisible: boolean;
@@ -13,23 +14,37 @@ const Sidebar: React.FC<SidebarProps> = ({ isVisible, onClose }) => {
     <Modal visible={isVisible} transparent={true} animationType="slide">
       <View style={styles.overlay}>
         <View style={styles.sidebarContainer}>
-        <TouchableOpacity style={styles.closeButton} onPress={onClose}>
-          <View style={styles.closeIconContainer}>
-            <Icon name="close" size={24} color="black" />
+          <TouchableOpacity style={styles.closeButton} onPress={onClose}>
+            <View style={styles.closeIconContainer}>
+              <Icon name="close" size={24} color="black" />
             </View>
-            </TouchableOpacity>
-          
+          </TouchableOpacity>
+
           {/* Título del Dashboard */}
           <Text style={styles.sidebarTitle}>Dashboard</Text>
 
           {/* Opciones del Sidebar */}
-          <TouchableOpacity style={styles.menuItem}>
+          <TouchableOpacity style={styles.menuItem} onPress={() => {}}>
             <Icon name="person-outline" size={24} color="black" />
             <Text style={styles.menuText}>Perfil</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.menuItem}>
+          <TouchableOpacity
+            style={styles.menuItem}
+            onPress={() => {
+              router.push("src/screen-HomeStudents/HomeStudentsPage");
+            }}
+          >
             <Icon name="heart-outline" size={24} color="black" />
             <Text style={styles.menuText}>Donativos/Actividades</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.menuItem}
+            onPress={() => {
+              router.push("src/screen-HomeStudents/ProgressPage");
+            }}
+          >
+            <Icon name="stats-chart-outline" size={24} color="black" />
+            <Text style={styles.menuText}>Progreso</Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.menuItem}>
             <Icon name="shield-outline" size={24} color="black" />
@@ -43,8 +58,13 @@ const Sidebar: React.FC<SidebarProps> = ({ isVisible, onClose }) => {
           {/* Botón de Cerrar Sesión */}
           <TouchableOpacity style={styles.logoutButton} onPress={onClose}>
             <View style={styles.logoutButtonContent}>
-            <Icon name="arrow-back-outline" size={24} color="white" style={styles.logoutIcon} />
-            <Text style={styles.logoutText}>Cerrar Sesión</Text>
+              <Icon
+                name="arrow-back-outline"
+                size={24}
+                color="white"
+                style={styles.logoutIcon}
+              />
+              <Text style={styles.logoutText}>Cerrar Sesión</Text>
             </View>
           </TouchableOpacity>
         </View>
