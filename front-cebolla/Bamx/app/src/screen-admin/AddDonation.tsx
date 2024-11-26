@@ -1,3 +1,4 @@
+import WithSidebar from "./WithSideBar";
 import React, { useState } from "react";
 import {
   View,
@@ -6,118 +7,121 @@ import {
   TouchableOpacity,
   StyleSheet,
   Alert,
-  ScrollView,
+  FlatList,
 } from "react-native";
 import DateTimePicker from "@react-native-community/datetimepicker";
-import WithSidebar from "./WithSidebar"; // Wrapper with sidebar functionality
+import { Picker } from "@react-native-picker/picker";
 import { LOCALHOST } from "../constants";
 
-const AddDonation: React.FC = () => {
-  const [hours, setHours] = useState<string>("");
-  const [name, setName] = useState<string>("");
-  const [img, setImg] = useState<string>("");
-  const [type, setType] = useState<string>("");
-  const [dueDate, setDueDate] = useState<Date | null>(null);
-  const [packages, setPackages] = useState<
-    Array<{ unity: string; quantity: number; object: string }>
-  >([]);
+interface Package {
+  object: string;
+  quantity: string;
+  unity: string;
+}
 
+const AddDonationPage: React.FC = () => {
+  const [name, setName] = useState<string>("");
+  const [hours, setHours] = useState<string>("");
+  const [img, setImg] = useState<string>("");
+  const [dueDate, setDueDate] = useState<Date | undefined>(undefined);
+  const [tipo, setTipo] = useState<string>("food");
+  const [packages, setPackages] = useState<Package[]>([]);
+  const [packageObject, setPackageObject] = useState<string>("");
+  const [packageQuantity, setPackageQuantity] = useState<string>("");
+  const [packageUnity, setPackageUnity] = useState<string>("");
   const [showDatePicker, setShowDatePicker] = useState<boolean>(false);
 
   const handleAddPackage = () => {
-    setPackages([...packages, { unity: "", quantity: 0, object: "" }]);
-  };
-
-  const handleUpdatePackage = (
-    index: number,
-    field: "unity" | "quantity" | "object",
-    value: string | number
-  ) => {
-    const updatedPackages = [...packages];
-    updatedPackages[index][field] = value;
-    setPackages(updatedPackages);
+    if (!packageObject || !packageQuantity || !packageUnity) {
+      Alert.alert("Error", "Todos los campos del paquete son obligatorios.");
+      return;
+    }
+    setPackages([
+      ...packages,
+      { object: packageObject, quantity: packageQuantity, unity: packageUnity },
+    ]);
+    setPackageObject("");
+    setPackageQuantity("");
+    setPackageUnity("");
   };
 
   const handleSubmit = async () => {
-    if (!hours || !name || !img || !type || !dueDate) {
-      Alert.alert("Error", "Por favor, complete todos los campos.");
+    if (!name || !hours || !img || !dueDate || !tipo) {
+      Alert.alert("Error", "Todos los campos son obligatorios");
       return;
     }
 
     try {
       const response = await fetch(`${LOCALHOST}/donations`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          hours: parseFloat(hours), // Ensure hours is a number
           name,
+          hours: parseFloat(hours),
           img,
-          due_date: dueDate.toISOString().split("T")[0], // Format date as YYYY-MM-DD
-          type,
+          due_date: dueDate.toISOString(),
+          type: tipo,
           packages,
         }),
       });
 
-      const data = await response.json();
-
       if (response.ok) {
-        Alert.alert("Éxito", "Donación creada con éxito.");
-        setHours("");
+        const data = await response.json();
+        Alert.alert("Éxito", "Donativo agregado correctamente");
         setName("");
+        setHours("");
         setImg("");
-        setType("");
-        setDueDate(null);
+        setDueDate(undefined);
+        setTipo("food");
         setPackages([]);
       } else {
-        Alert.alert("Error", data.error || "No se pudo crear la donación.");
+        const errorData = await response.json();
+        Alert.alert("Error", errorData.error || "Hubo un problema");
       }
     } catch (error) {
-      console.error("Error creating donation:", error);
-      Alert.alert("Error", "Hubo un problema al crear la donación.");
+      console.error("Error al agregar donativo:", error);
+      Alert.alert("Error", "No se pudo agregar el donativo");
     }
   };
 
   return (
-    <WithSidebar>
-      <ScrollView style={styles.container}>
-        <Text style={styles.title}>Agregar Donación</Text>
+    <View style={styles.container}>
+      <WithSidebar>
+        <Text style={styles.title}>Agregar Donativo</Text>
+
         <TextInput
           style={styles.input}
-          placeholder="Nombre de la Donación"
+          placeholder="Nombre del donativo"
           value={name}
           onChangeText={setName}
         />
+
         <TextInput
           style={styles.input}
-          placeholder="Horas"
-          keyboardType="numeric"
+          placeholder="Horas estimadas"
           value={hours}
           onChangeText={setHours}
+          keyboardType="numeric"
         />
+
         <TextInput
           style={styles.input}
-          placeholder="URL de la Imagen"
+          placeholder="URL de la imagen"
           value={img}
           onChangeText={setImg}
         />
-        <TextInput
-          style={styles.input}
-          placeholder="Tipo de Donación (e.g., food, clothes)"
-          value={type}
-          onChangeText={setType}
-        />
+
         <TouchableOpacity
-          style={styles.datePickerButton}
           onPress={() => setShowDatePicker(true)}
+          style={styles.datePickerButton}
         >
           <Text style={styles.datePickerText}>
             {dueDate
-              ? `Fecha Límite: ${dueDate.toLocaleDateString()}`
-              : "Seleccionar Fecha Límite"}
+              ? `Fecha de vencimiento: ${dueDate.toLocaleDateString()}`
+              : "Seleccionar fecha de vencimiento"}
           </Text>
         </TouchableOpacity>
+
         {showDatePicker && (
           <DateTimePicker
             value={dueDate || new Date()}
@@ -131,51 +135,66 @@ const AddDonation: React.FC = () => {
             }}
           />
         )}
-        <Text style={styles.subTitle}>Paquetes</Text>
-        {packages.map((pkg, index) => (
-          <View key={index} style={styles.packageContainer}>
-            <TextInput
-              style={styles.input}
-              placeholder="Unidad (e.g., Box)"
-              value={pkg.unity}
-              onChangeText={(value) =>
-                handleUpdatePackage(index, "unity", value)
-              }
-            />
-            <TextInput
-              style={styles.input}
-              placeholder="Cantidad"
-              keyboardType="numeric"
-              value={pkg.quantity.toString()}
-              onChangeText={(value) =>
-                handleUpdatePackage(index, "quantity", parseInt(value) || 0)
-              }
-            />
-            <TextInput
-              style={styles.input}
-              placeholder="Objeto (e.g., Food, Clothes)"
-              value={pkg.object}
-              onChangeText={(value) =>
-                handleUpdatePackage(index, "object", value)
-              }
-            />
-          </View>
-        ))}
+
+        <View style={styles.pickerContainer}>
+          <Text style={styles.pickerLabel}>Tipo de donativo:</Text>
+          <Picker
+            selectedValue={tipo}
+            onValueChange={(itemValue) => setTipo(itemValue)}
+            style={styles.picker}
+          >
+            <Picker.Item label="Comida" value="food" />
+            <Picker.Item label="Ropa" value="clothes" />
+            <Picker.Item label="Electrodomésticos" value="appliances" />
+          </Picker>
+        </View>
+
+        <Text style={styles.sectionTitle}>Agregar Paquetes</Text>
+        <TextInput
+          style={styles.input}
+          placeholder="Objeto"
+          value={packageObject}
+          onChangeText={setPackageObject}
+        />
+        <TextInput
+          style={styles.input}
+          placeholder="Cantidad"
+          value={packageQuantity}
+          onChangeText={setPackageQuantity}
+          keyboardType="numeric"
+        />
+        <TextInput
+          style={styles.input}
+          placeholder="Unidad (e.g., Caja, Unidad)"
+          value={packageUnity}
+          onChangeText={setPackageUnity}
+        />
         <TouchableOpacity
           style={styles.addPackageButton}
           onPress={handleAddPackage}
         >
           <Text style={styles.addPackageButtonText}>Agregar Paquete</Text>
         </TouchableOpacity>
+
+        <FlatList
+          data={packages}
+          keyExtractor={(_, index) => index.toString()}
+          renderItem={({ item }) => (
+            <View style={styles.packageItem}>
+              <Text>{`${item.quantity} ${item.unity} de ${item.object}`}</Text>
+            </View>
+          )}
+        />
+
         <TouchableOpacity style={styles.submitButton} onPress={handleSubmit}>
-          <Text style={styles.submitButtonText}>Crear Donación</Text>
+          <Text style={styles.submitButtonText}>Agregar Donativo</Text>
         </TouchableOpacity>
-      </ScrollView>
-    </WithSidebar>
+      </WithSidebar>
+    </View>
   );
 };
 
-export default AddDonation;
+export default AddDonationPage;
 
 const styles = StyleSheet.create({
   container: {
@@ -187,43 +206,49 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontWeight: "bold",
     marginBottom: 16,
-    textAlign: "center",
     color: "#333",
   },
   input: {
-    backgroundColor: "#fff",
     borderWidth: 1,
     borderColor: "#ccc",
     borderRadius: 8,
     padding: 12,
-    marginBottom: 12,
-    fontSize: 16,
+    marginBottom: 16,
+    backgroundColor: "#fff",
   },
   datePickerButton: {
-    backgroundColor: "#FF5722",
     padding: 12,
+    borderWidth: 1,
+    borderColor: "#ccc",
     borderRadius: 8,
     marginBottom: 16,
-    alignItems: "center",
+    backgroundColor: "#fff",
   },
   datePickerText: {
-    color: "#fff",
+    color: "#333",
+  },
+  pickerContainer: {
+    marginBottom: 16,
+  },
+  pickerLabel: {
     fontSize: 16,
     fontWeight: "bold",
-  },
-  subTitle: {
-    fontSize: 18,
-    fontWeight: "bold",
+    color: "#333",
     marginBottom: 8,
   },
-  packageContainer: {
-    backgroundColor: "#f0f0f0",
-    padding: 12,
+  picker: {
+    backgroundColor: "#fff",
+    borderWidth: 1,
+    borderColor: "#ccc",
     borderRadius: 8,
-    marginBottom: 12,
+  },
+  sectionTitle: {
+    fontSize: 20,
+    fontWeight: "bold",
+    marginVertical: 8,
   },
   addPackageButton: {
-    backgroundColor: "#4CAF50",
+    backgroundColor: "#FF5722",
     padding: 12,
     borderRadius: 8,
     alignItems: "center",
@@ -234,16 +259,23 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "bold",
   },
+  packageItem: {
+    padding: 8,
+    borderWidth: 1,
+    borderColor: "#ccc",
+    borderRadius: 8,
+    marginBottom: 8,
+    backgroundColor: "#fff",
+  },
   submitButton: {
     backgroundColor: "#FF5722",
+    padding: 16,
     borderRadius: 8,
-    paddingVertical: 12,
     alignItems: "center",
-    marginTop: 16,
   },
   submitButtonText: {
     color: "#fff",
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: "bold",
   },
 });

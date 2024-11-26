@@ -56,7 +56,12 @@ const Sidebar: React.FC<SidebarProps> = ({ isVisible, onClose }) => {
           </TouchableOpacity>
 
           {/* Botón de Cerrar Sesión */}
-          <TouchableOpacity style={styles.logoutButton} onPress={onClose}>
+          <TouchableOpacity
+            style={styles.logoutButton}
+            onPress={() => {
+              router.push("src/screen-Login/LoginPage");
+            }}
+          >
             <View style={styles.logoutButtonContent}>
               <Icon
                 name="arrow-back-outline"

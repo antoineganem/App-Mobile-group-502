@@ -192,8 +192,8 @@ const EventPage: React.FC<EventPageProps> = ({ studentId }) => {
   }
 
   return (
-    <WithSidebar>
-      <View style={styles.container}>
+    <View style={styles.container}>
+      <WithSidebar>
         {/* Search Bar */}
         <View style={styles.searchContainer}>
           <TextInput
@@ -379,8 +379,8 @@ const EventPage: React.FC<EventPageProps> = ({ studentId }) => {
             </View>
           </View>
         </Modal>
-      </View>
-    </WithSidebar>
+      </WithSidebar>
+    </View>
   );
 };
 

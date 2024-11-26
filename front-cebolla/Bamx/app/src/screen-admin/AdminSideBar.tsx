@@ -65,7 +65,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isVisible, onClose }) => {
           </TouchableOpacity>
           <TouchableOpacity
             style={styles.menuItem}
-            onPress={() => router.push("src/screen-Admin/DeleteItems")}
+            onPress={() => router.push("src/screen-admin/DeleteItems")}
           >
             <Icon name="trash-outline" size={24} color="black" />
             <Text style={styles.menuText}>Editar Actividad/Donativo</Text>
@@ -74,7 +74,12 @@ const Sidebar: React.FC<SidebarProps> = ({ isVisible, onClose }) => {
           {/* Other Options */}
 
           {/* Botón de Cerrar Sesión */}
-          <TouchableOpacity style={styles.logoutButton} onPress={onClose}>
+          <TouchableOpacity
+            style={styles.logoutButton}
+            onPress={() => {
+              router.push("src/screen-Login/LoginPage");
+            }}
+          >
             <View style={styles.logoutButtonContent}>
               <Icon
                 name="arrow-back-outline"
