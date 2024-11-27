@@ -24,7 +24,11 @@ const Sidebar: React.FC<SidebarProps> = ({ isVisible, onClose }) => {
           <Text style={styles.sidebarTitle}>Dashboard</Text>
 
           {/* Opciones del Sidebar */}
-          <TouchableOpacity style={styles.menuItem} onPress={() => {}}>
+          <TouchableOpacity 
+          style={styles.menuItem} 
+          onPress={() => {
+            router.push("/src/screen-Profile/ProfileScreen")
+          }}>
             <Icon name="person-outline" size={24} color="black" />
             <Text style={styles.menuText}>Perfil</Text>
           </TouchableOpacity>
@@ -46,7 +50,12 @@ const Sidebar: React.FC<SidebarProps> = ({ isVisible, onClose }) => {
             <Icon name="stats-chart-outline" size={24} color="black" />
             <Text style={styles.menuText}>Progreso</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.menuItem}>
+          <TouchableOpacity
+            style={styles.menuItem}
+            onPress={() => {
+            router.push("/src/screen-Seguridad/SeguridadScreen");
+          }}
+            >
             <Icon name="shield-outline" size={24} color="black" />
             <Text style={styles.menuText}>Seguridad</Text>
           </TouchableOpacity>
