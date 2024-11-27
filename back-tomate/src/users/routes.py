@@ -51,6 +51,24 @@ def createUser():
 
     return jsonify({"message": "User created successfully"}), 201
 
+@user_bp.route('/getUser', methods=['GET'])
+def get_user():
+
+    user_id = request.args.get('user_id')
+
+    if  not user_id : 
+        return jsonify({"error": "Missing id"}), 400
+
+    query = "SELECT * FROM users WHERE id = %s"
+    results = fetch_db(query, (user_id,)) 
+
+    if not results:
+        return jsonify({"error": "User not found"}), 404
+
+    user = results[0]
+
+    return jsonify({"user": user}), 200
+
 @user_bp.route('/users/log-in', methods=['POST'])
 def log_in():
     data = request.json
