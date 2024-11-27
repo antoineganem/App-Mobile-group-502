@@ -59,7 +59,11 @@ const Sidebar: React.FC<SidebarProps> = ({ isVisible, onClose }) => {
             <Icon name="shield-outline" size={24} color="black" />
             <Text style={styles.menuText}>Seguridad</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.menuItem}>
+          <TouchableOpacity style={styles.menuItem}
+            onPress={() => {
+              router.push("/src/screen-Soporte/SoporteScreen");
+            }}
+            >
             <Icon name="help-circle-outline" size={24} color="black" />
             <Text style={styles.menuText}>Soporte</Text>
           </TouchableOpacity>
